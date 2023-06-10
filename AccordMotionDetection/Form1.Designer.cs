@@ -38,25 +38,28 @@
             // 
             // pictureBox1
             // 
-            this.pictureBox1.Location = new System.Drawing.Point(186, 118);
+            this.pictureBox1.Location = new System.Drawing.Point(93, 61);
+            this.pictureBox1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(689, 648);
+            this.pictureBox1.Size = new System.Drawing.Size(1111, 519);
             this.pictureBox1.TabIndex = 0;
             this.pictureBox1.TabStop = false;
             // 
             // pictureBox2
             // 
-            this.pictureBox2.Location = new System.Drawing.Point(1150, 118);
+            this.pictureBox2.Location = new System.Drawing.Point(93, 597);
+            this.pictureBox2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.pictureBox2.Name = "pictureBox2";
-            this.pictureBox2.Size = new System.Drawing.Size(674, 648);
+            this.pictureBox2.Size = new System.Drawing.Size(1111, 478);
             this.pictureBox2.TabIndex = 1;
             this.pictureBox2.TabStop = false;
             // 
             // btnUpload
             // 
-            this.btnUpload.Location = new System.Drawing.Point(923, 792);
+            this.btnUpload.Location = new System.Drawing.Point(447, 11);
+            this.btnUpload.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnUpload.Name = "btnUpload";
-            this.btnUpload.Size = new System.Drawing.Size(132, 58);
+            this.btnUpload.Size = new System.Drawing.Size(66, 30);
             this.btnUpload.TabIndex = 2;
             this.btnUpload.Text = "Upload";
             this.btnUpload.UseVisualStyleBackColor = true;
@@ -64,9 +67,10 @@
             // 
             // btnPlay
             // 
-            this.btnPlay.Location = new System.Drawing.Point(1116, 801);
+            this.btnPlay.Location = new System.Drawing.Point(539, 14);
+            this.btnPlay.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnPlay.Name = "btnPlay";
-            this.btnPlay.Size = new System.Drawing.Size(144, 48);
+            this.btnPlay.Size = new System.Drawing.Size(72, 25);
             this.btnPlay.TabIndex = 3;
             this.btnPlay.Text = "Play";
             this.btnPlay.UseVisualStyleBackColor = true;
@@ -74,15 +78,18 @@
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(2171, 872);
+            this.ClientSize = new System.Drawing.Size(1699, 931);
             this.Controls.Add(this.btnPlay);
             this.Controls.Add(this.btnUpload);
             this.Controls.Add(this.pictureBox2);
             this.Controls.Add(this.pictureBox1);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "Form1";
             this.Text = "Form1";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
+            this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             this.ResumeLayout(false);

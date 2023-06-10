@@ -46,49 +46,58 @@ namespace AccordMotionDetection
 
         private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
         {
-            // Update the current frame
-            if (currentFrame != null)
-                currentFrame.Dispose();
-            currentFrame = (Bitmap)eventArgs.Frame.Clone();
+            videoSource.NewFrame -= VideoSource_NewFrame;
 
-            // Convert the current frame to grayscale
-            Bitmap grayFrame = Grayscale.CommonAlgorithms.BT709.Apply(currentFrame);
-
-            // Check if it's the first frame
-            if (previousFrame == null)
+            try
             {
-                // Initialize the previous frame with the current frame
-                previousFrame = (Bitmap)grayFrame.Clone();
-                return;
-            }
+                // Update the current frame
+                if (currentFrame != null)
+                    currentFrame.Dispose();
+                currentFrame = (Bitmap)eventArgs.Frame.Clone();
 
-            // Apply frame differencing
-            Bitmap diffFrame = new Bitmap(grayFrame.Width, grayFrame.Height);
-            for (int x = 0; x < grayFrame.Width; x++)
-            {
-                for (int y = 0; y < grayFrame.Height; y++)
+                // Convert the current frame to grayscale
+                Bitmap grayFrame = Grayscale.CommonAlgorithms.BT709.Apply(currentFrame);
+
+                // Check if it's the first frame
+                if (previousFrame == null)
                 {
-                    Color previousPixel = previousFrame.GetPixel(x, y);
-                    Color currentPixel = grayFrame.GetPixel(x, y);
-                    int diff = Math.Abs(currentPixel.R - previousPixel.R);
-                    diffFrame.SetPixel(x, y, Color.FromArgb(diff, diff, diff));
+                    // Initialize the previous frame with the current frame
+                    previousFrame = (Bitmap)grayFrame.Clone();
+                    return;
                 }
+
+                // Apply frame differencing
+                Bitmap diffFrame = new Bitmap(grayFrame.Width, grayFrame.Height);
+                for (int x = 0; x < grayFrame.Width; x++)
+                {
+                    for (int y = 0; y < grayFrame.Height; y++)
+                    {
+                        Color previousPixel = previousFrame.GetPixel(x, y);
+                        Color currentPixel = grayFrame.GetPixel(x, y);
+                        int diff = Math.Abs(currentPixel.R - previousPixel.R);
+                        diffFrame.SetPixel(x, y, Color.FromArgb(diff, diff, diff));
+                    }
+                }
+
+                // Update the PictureBox controls
+                pictureBox1.Image = currentFrame;
+                pictureBox2.Image = diffFrame;
+
+                // Update the previous frame
+                previousFrame.Dispose();
+                previousFrame = (Bitmap)grayFrame.Clone();
+
+                // Check for motion detection
+                if (motionDetected)
+                {
+                    // TBD
+                }
+                //DetectNoMotionAreas(diffFrame);
             }
-
-            // Update the PictureBox controls
-            pictureBox1.Image = currentFrame;
-            pictureBox2.Image = diffFrame;
-
-            // Update the previous frame
-            previousFrame.Dispose();
-            previousFrame = (Bitmap)grayFrame.Clone();
-
-            // Check for motion detection
-            if (motionDetected)
+            finally
             {
-                // TBD
+                videoSource.NewFrame += VideoSource_NewFrame;
             }
-            DetectNoMotionAreas(diffFrame);
         }
 
         private void DetectNoMotionAreas(Bitmap diffFrame)
