@@ -19,6 +19,8 @@ namespace AccordMotionDetection
         private Bitmap previousFrame;
         private bool motionDetected;
         private LinkedList<Rectangle> noMotionAreas;
+        private VideoFileReader videoReader;
+        private Timer timer;
 
         public Form1()
         {
@@ -29,6 +31,7 @@ namespace AccordMotionDetection
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            return;
             videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
             if (videoDevices.Count == 0)
             {
@@ -192,7 +195,7 @@ namespace AccordMotionDetection
         private void btnUpload_Click(object sender, EventArgs e)
         {
             var openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Video Files|*.mp4;*.avi;*.wmv";
+            openFileDialog.Filter = "Video Files|*.mp4;*.avi;*.wmv;*.mkv";
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 // Stop the current video source
@@ -205,14 +208,32 @@ namespace AccordMotionDetection
                 }
 
                 // Open the selected video file
-                videoSource = new VideoCaptureDevice(openFileDialog.FileName);
-                videoSource.NewFrame += VideoSource_NewFrame;
+                
+                //videoSource = new VideoCaptureDevice(openFileDialog.FileName);
+                //videoSource.NewFrame += VideoSource_NewFrame;
 
-                // Start capturing
-                videoSource.Start();
+                videoReader = new VideoFileReader();
+                videoReader.Open(openFileDialog.FileName);
+
+
+                // Iterate over video frames
+                for (int frameNumber = 0; frameNumber < videoReader.FrameCount; frameNumber++)
+                {
+                    // Read the next frame
+                    var frame = videoReader.ReadVideoFrame();
+                    pictureBox1.Image = frame;
+
+                    // Perform processing operations on the frame
+                    // ...
+
+                    // Dispose the frame after processing
+                    frame.Dispose();
+
+                }
 
             }
         }
+
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
