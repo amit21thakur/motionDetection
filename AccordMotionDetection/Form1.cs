@@ -117,6 +117,8 @@ namespace AccordMotionDetection
             openFileDialog.Filter = "Video Files|*.mp4;*.avi;*.wmv;*.mkv";
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
+                var dtStart = DateTime.Now;
+
                 videoReader = new VideoFileReader();
                 videoReader.Open(openFileDialog.FileName);
                 bool inMotion = false;
@@ -170,6 +172,7 @@ namespace AccordMotionDetection
                     frame.Dispose();
 
                 }
+                MessageBox.Show($"{dtStart} till {DateTime.Now}");
 
             }
         }
