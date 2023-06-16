@@ -8,6 +8,8 @@ using System.Windows.Forms;
 using Accord.Imaging.Filters;
 using Accord.Video;
 using System.Collections.Generic;
+using Accord.Vision.Motion;
+using AccordMotionDetection.Models;
 
 namespace AccordMotionDetection
 {
@@ -18,33 +20,39 @@ namespace AccordMotionDetection
         private Bitmap currentFrame;
         private Bitmap previousFrame;
         private bool motionDetected;
-        private LinkedList<Rectangle> noMotionAreas;
+        private LinkedList<NoMotionItem> noMotionAreas;
+        private float minMotionLevel = 0.01f;
         private VideoFileReader videoReader;
         private Timer timer;
+
+
+        private MotionDetector detector = new MotionDetector(
+            new TwoFramesDifferenceDetector(),
+            new MotionAreaHighlighting());
 
         public Form1()
         {
             InitializeComponent();
             motionDetected = false;
-            noMotionAreas = new LinkedList<Rectangle>();
+            noMotionAreas = new LinkedList<NoMotionItem>();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            return;
-            videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-            if (videoDevices.Count == 0)
-            {
-                MessageBox.Show("No video devices found.");
-                return;
-            }
+            //return;
+            //videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+            //if (videoDevices.Count == 0)
+            //{
+            //    MessageBox.Show("No video devices found.");
+            //    return;
+            //}
 
-            // Select the first video device
-            videoSource = new VideoCaptureDevice(videoDevices[0].MonikerString);
-            videoSource.NewFrame += VideoSource_NewFrame;
+            //// Select the first video device
+            //videoSource = new VideoCaptureDevice(videoDevices[0].MonikerString);
+            //videoSource.NewFrame += VideoSource_NewFrame;
 
-            // Start capturing
-            videoSource.Start();
+            //// Start capturing
+            //videoSource.Start();
         }
 
         private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
@@ -103,129 +111,61 @@ namespace AccordMotionDetection
             }
         }
 
-        private void DetectNoMotionAreas(Bitmap diffFrame)
-        {
-            const int motionThreshold = 30; // Adjust this threshold as needed
-
-            // Clear the previous no motion areas
-            noMotionAreas.Clear();
-
-            // Identify areas of no motion
-            for (int x = 0; x < diffFrame.Width; x++)
-            {
-                for (int y = 0; y < diffFrame.Height; y++)
-                {
-                    Color pixel = diffFrame.GetPixel(x, y);
-                    if (pixel.R <= motionThreshold && pixel.G <= motionThreshold && pixel.B <= motionThreshold)
-                    {
-                        // Check if the current pixel is part of an existing no motion area
-                        bool foundArea = false;
-                        foreach (Rectangle area in noMotionAreas)
-                        {
-                            if (area.Contains(x, y))
-                            {
-                                foundArea = true;
-                                break;
-                            }
-                        }
-
-                        if (!foundArea)
-                        {
-                            // Expand the no motion area and add it to the linked list
-                            Rectangle noMotionArea = ExpandNoMotionArea(diffFrame, x, y, motionThreshold);
-                            noMotionAreas.AddLast(noMotionArea);
-                        }
-                    }
-                }
-            }
-        }
-
-        private Rectangle ExpandNoMotionArea(Bitmap diffFrame, int startX, int startY, int motionThreshold)
-        {
-            int maxX = diffFrame.Width - 1;
-            int maxY = diffFrame.Height - 1;
-
-            int minX = startX;
-            int minY = startY;
-            int maxXExpanded = startX;
-            int maxYExpanded = startY;
-
-            Queue<Point> queue = new Queue<Point>();
-            queue.Enqueue(new Point(startX, startY));
-
-            while (queue.Count > 0)
-            {
-                Point currentPoint = queue.Dequeue();
-                int x = currentPoint.X;
-                int y = currentPoint.Y;
-
-                if (x < minX) minX = x;
-                if (x > maxXExpanded) maxXExpanded = x;
-                if (y < minY) minY = y;
-                if (y > maxYExpanded) maxYExpanded = y;
-
-                // Check the neighboring pixels in a 3x3 window
-                for (int i = -1; i <= 1; i++)
-                {
-                    for (int j = -1; j <= 1; j++)
-                    {
-                        int neighborX = x + i;
-                        int neighborY = y + j;
-
-                        // Skip out-of-bounds pixels
-                        if (neighborX < 0 || neighborX > maxX || neighborY < 0 || neighborY > maxY)
-                            continue;
-
-                        // Check if the neighbor is part of the no motion area
-                        Color neighborPixel = diffFrame.GetPixel(neighborX, neighborY);
-                        if (neighborPixel.R <= motionThreshold && neighborPixel.G <= motionThreshold && neighborPixel.B <= motionThreshold)
-                        {
-                            diffFrame.SetPixel(neighborX, neighborY, Color.White); // Optional: Mark the expanded area as white in the difference frame
-                            queue.Enqueue(new Point(neighborX, neighborY));
-                        }
-                    }
-                }
-            }
-
-            int widthExpanded = maxXExpanded - minX + 1;
-            int heightExpanded = maxYExpanded - minY + 1;
-            return new Rectangle(minX, minY, widthExpanded, heightExpanded);
-        }
-
         private void btnUpload_Click(object sender, EventArgs e)
         {
             var openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Video Files|*.mp4;*.avi;*.wmv;*.mkv";
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                // Stop the current video source
-                if (videoSource != null && videoSource.IsRunning)
-                {
-                    videoSource.SignalToStop();
-                    videoSource.WaitForStop();
-                    videoSource.NewFrame -= VideoSource_NewFrame;
-                    videoSource = null;
-                }
-
-                // Open the selected video file
-                
-                //videoSource = new VideoCaptureDevice(openFileDialog.FileName);
-                //videoSource.NewFrame += VideoSource_NewFrame;
-
                 videoReader = new VideoFileReader();
                 videoReader.Open(openFileDialog.FileName);
-
-
+                bool inMotion = false;
+                TimeSpan? startTime = null ;
                 // Iterate over video frames
                 for (int frameNumber = 0; frameNumber < videoReader.FrameCount; frameNumber++)
                 {
                     // Read the next frame
                     var frame = videoReader.ReadVideoFrame();
-                    pictureBox1.Image = frame;
+
 
                     // Perform processing operations on the frame
                     // ...
-
+                    var motionLevel = detector.ProcessFrame(frame);
+                    if(motionLevel > minMotionLevel) 
+                    {
+                        if(!inMotion)
+                        {
+                            if (!startTime.HasValue)
+                            {
+                                throw new InvalidOperationException("Start Time could not be null");
+                            }
+                            var endTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
+                            noMotionAreas.AddLast(new NoMotionItem(startTime.Value, endTime));
+                            startTime = null;
+                            inMotion = true;
+                        }
+                    }
+                    else
+                    {
+                        if(frameNumber == 1)
+                        {
+                            startTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
+                        }
+                        if(inMotion)
+                        {
+                            //Add no motion item in LL
+                            startTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
+                            inMotion = false;
+                        }
+                        if(frameNumber == videoReader.FrameCount - 1)
+                        {
+                            if(!inMotion && startTime.HasValue)
+                            {
+                                var endTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
+                                noMotionAreas.AddLast(new NoMotionItem(startTime.Value, endTime));
+                            }
+                        }
+                    }
                     // Dispose the frame after processing
                     frame.Dispose();
 

@@ -41,6 +41,9 @@
     <Reference Include="Accord.Imaging, Version=3.8.2.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
       <HintPath>..\packages\Accord.Imaging.3.8.2-alpha\lib\net462\Accord.Imaging.dll</HintPath>
     </Reference>
+    <Reference Include="Accord.MachineLearning, Version=3.8.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
+      <HintPath>..\packages\Accord.MachineLearning.3.8.0\lib\net462\Accord.MachineLearning.dll</HintPath>
+    </Reference>
     <Reference Include="Accord.Math, Version=3.8.2.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
       <HintPath>..\packages\Accord.Math.3.8.2-alpha\lib\net462\Accord.Math.dll</HintPath>
     </Reference>
@@ -62,6 +65,9 @@
     <Reference Include="Accord.Video.VFW, Version=3.8.2.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
       <HintPath>..\packages\Accord.Video.VFW.3.8.2-alpha\lib\net462\Accord.Video.VFW.dll</HintPath>
     </Reference>
+    <Reference Include="Accord.Vision, Version=3.8.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
+      <HintPath>..\packages\Accord.Vision.3.8.0\lib\net462\Accord.Vision.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -81,6 +87,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\NoMotionItem.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Form1.resx">
