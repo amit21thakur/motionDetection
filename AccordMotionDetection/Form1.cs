@@ -24,6 +24,12 @@ namespace AccordMotionDetection
         private float minMotionLevel = 0.01f;
         private VideoFileReader videoReader;
         private Timer timer;
+        private bool IsInMotion = false;
+        private TimeSpan? noMotionStartTime = null;
+
+
+        private bool isDemoMode = false;
+        private int currentFrameIndex = -1;
 
 
         private MotionDetector detector = new MotionDetector(
@@ -37,80 +43,6 @@ namespace AccordMotionDetection
             noMotionAreas = new LinkedList<NoMotionItem>();
         }
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            //return;
-            //videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-            //if (videoDevices.Count == 0)
-            //{
-            //    MessageBox.Show("No video devices found.");
-            //    return;
-            //}
-
-            //// Select the first video device
-            //videoSource = new VideoCaptureDevice(videoDevices[0].MonikerString);
-            //videoSource.NewFrame += VideoSource_NewFrame;
-
-            //// Start capturing
-            //videoSource.Start();
-        }
-
-        private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
-        {
-            videoSource.NewFrame -= VideoSource_NewFrame;
-
-            try
-            {
-                // Update the current frame
-                if (currentFrame != null)
-                    currentFrame.Dispose();
-                currentFrame = (Bitmap)eventArgs.Frame.Clone();
-
-                // Convert the current frame to grayscale
-                Bitmap grayFrame = Grayscale.CommonAlgorithms.BT709.Apply(currentFrame);
-
-                // Check if it's the first frame
-                if (previousFrame == null)
-                {
-                    // Initialize the previous frame with the current frame
-                    previousFrame = (Bitmap)grayFrame.Clone();
-                    return;
-                }
-
-                // Apply frame differencing
-                Bitmap diffFrame = new Bitmap(grayFrame.Width, grayFrame.Height);
-                for (int x = 0; x < grayFrame.Width; x++)
-                {
-                    for (int y = 0; y < grayFrame.Height; y++)
-                    {
-                        Color previousPixel = previousFrame.GetPixel(x, y);
-                        Color currentPixel = grayFrame.GetPixel(x, y);
-                        int diff = Math.Abs(currentPixel.R - previousPixel.R);
-                        diffFrame.SetPixel(x, y, Color.FromArgb(diff, diff, diff));
-                    }
-                }
-
-                // Update the PictureBox controls
-                pictureBox1.Image = currentFrame;
-                pictureBox2.Image = diffFrame;
-
-                // Update the previous frame
-                previousFrame.Dispose();
-                previousFrame = (Bitmap)grayFrame.Clone();
-
-                // Check for motion detection
-                if (motionDetected)
-                {
-                    // TBD
-                }
-                //DetectNoMotionAreas(diffFrame);
-            }
-            finally
-            {
-                videoSource.NewFrame += VideoSource_NewFrame;
-            }
-        }
-
         private void btnUpload_Click(object sender, EventArgs e)
         {
             var openFileDialog = new OpenFileDialog();
@@ -121,91 +53,182 @@ namespace AccordMotionDetection
 
                 videoReader = new VideoFileReader();
                 videoReader.Open(openFileDialog.FileName);
-                bool inMotion = false;
-                TimeSpan? startTime = null ;
-                // Iterate over video frames
-                for (int frameNumber = 0; frameNumber < videoReader.FrameCount; frameNumber++)
+                if (!isDemoMode)
                 {
-                    // Read the next frame
-                    var frame = videoReader.ReadVideoFrame();
-
-
-                    // Perform processing operations on the frame
-                    // ...
-                    var motionLevel = detector.ProcessFrame(frame);
-                    if(motionLevel > minMotionLevel) 
+                    bool inMotion = false;
+                    TimeSpan? startTime = null;
+                    // Iterate over video frames
+                    for (int frameNumber = 0; frameNumber < videoReader.FrameCount; frameNumber++)
                     {
-                        if(!inMotion)
+                        // Read the next frame
+                        var frame = videoReader.ReadVideoFrame();
+
+                        if (frame == null)
+                            continue;
+
+                        // Perform processing operations on the frame
+                        // ...
+                        var motionLevel = detector.ProcessFrame(frame);
+                        if (motionLevel > minMotionLevel)
                         {
-                            if (!startTime.HasValue)
+                            if (!inMotion)
                             {
-                                throw new InvalidOperationException("Start Time could not be null");
-                            }
-                            var endTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
-                            noMotionAreas.AddLast(new NoMotionItem(startTime.Value, endTime));
-                            startTime = null;
-                            inMotion = true;
-                        }
-                    }
-                    else
-                    {
-                        if(frameNumber == 1)
-                        {
-                            startTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
-                        }
-                        if(inMotion)
-                        {
-                            //Add no motion item in LL
-                            startTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
-                            inMotion = false;
-                        }
-                        if(frameNumber == videoReader.FrameCount - 1)
-                        {
-                            if(!inMotion && startTime.HasValue)
-                            {
+                                if (!startTime.HasValue)
+                                {
+                                    if (frameNumber < 10)
+                                    {
+                                        startTime = new TimeSpan(0);
+                                    }
+                                    else
+                                    {
+                                        throw new InvalidOperationException("Start Time could not be null");
+                                    }
+                                }
                                 var endTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
-                                noMotionAreas.AddLast(new NoMotionItem(startTime.Value, endTime));
+                                var node = new NoMotionItem(startTime.Value, endTime);
+                                noMotionAreas.AddLast(node);
+                                textBox1.Text += node.ToString();
+                                startTime = null;
+                                inMotion = true;
                             }
                         }
+                        else
+                        {
+                            if (frameNumber == 1)
+                            {
+                                startTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
+                            }
+                            if (inMotion)
+                            {
+                                //Add no motion item in LL
+                                startTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
+                                inMotion = false;
+                            }
+                            if (frameNumber == videoReader.FrameCount - 1)
+                            {
+                                if (!inMotion && startTime.HasValue)
+                                {
+                                    var endTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
+                                    var node = new NoMotionItem(startTime.Value, endTime);
+                                    noMotionAreas.AddLast(node);
+                                    textBox1.Text += node.ToString();
+                                }
+                            }
+                        }
+                        // Dispose the frame after processing
+                        frame.Dispose();
+
                     }
-                    // Dispose the frame after processing
-                    frame.Dispose();
-
+                    MessageBox.Show($"{dtStart} till {DateTime.Now}");
                 }
-                MessageBox.Show($"{dtStart} till {DateTime.Now}");
+                else
+                {
+                    // Create a timer to advance frames
+                    timer = new Timer();
+                    timer.Tick += new EventHandler(ShowNextFrame);
 
+                    // Sets the timer interval to 5 seconds.
+                    timer.Interval = (int)Math.Round(1000.0 / videoReader.FrameRate.Value);
+                    timer.Start();
+                }
             }
         }
 
 
-        protected override void OnFormClosing(FormClosingEventArgs e)
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
-            // Stop capturing and release resources
-            if (videoSource != null && videoSource.IsRunning)
-            {
-                videoSource.SignalToStop();
-                videoSource.WaitForStop();
-                videoSource.NewFrame -= VideoSource_NewFrame;
-                videoSource = null;
-            }
-
-            if (currentFrame != null)
-            {
-                currentFrame.Dispose();
-                currentFrame = null;
-            }
-            if (previousFrame != null)
-            {
-                previousFrame.Dispose();
-                previousFrame = null;
-            }
-
-            base.OnFormClosing(e);
+            isDemoMode = chkDemoMode.Checked;
         }
 
-        private void btnPlay_Click(object sender, EventArgs e)
+
+
+
+        // Method to show the next frame
+        private void ShowNextFrame(object state, EventArgs args)
+        {
+            // Read the next frame
+            currentFrame = videoReader.ReadVideoFrame();
+            currentFrameIndex++;
+
+
+            // Perform processing operations on the frame
+            // ...
+            var motionLevel = currentFrame != null ? detector.ProcessFrame(currentFrame): 0;
+            if (motionLevel > minMotionLevel)
+            {
+                if (!IsInMotion)
+                {
+                    if (!noMotionStartTime.HasValue)
+                    {
+                        if (currentFrameIndex < 10)
+                        {
+                            noMotionStartTime = new TimeSpan(0);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("Start Time could not be null");
+                        }
+                    }
+                    var endTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
+                    var node = new NoMotionItem(noMotionStartTime.Value, endTime);
+                    noMotionAreas.AddLast(node);
+                    textBox1.Text += node.ToString();
+                    noMotionStartTime = null;
+                    IsInMotion = true;
+                }
+            }
+            else
+            {
+                if (currentFrameIndex == 1)
+                {
+                    noMotionStartTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
+                }
+                if (IsInMotion)
+                {
+                    //Add no motion item in LL
+                    noMotionStartTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
+                    IsInMotion = false;
+                }
+                if (currentFrameIndex == videoReader.FrameCount - 1)
+                {
+                    if (!IsInMotion && noMotionStartTime.HasValue)
+                    {
+                        var endTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
+                        var node = new NoMotionItem(noMotionStartTime.Value, endTime);
+                        noMotionAreas.AddLast(node);
+                        textBox1.Text += node.ToString();
+                    }
+                }
+            }
+
+            // Update the PictureBox with the current frame
+            lbl.Text = IsInMotion ? "MOTION" : "NO MOTION";
+            pictureBox1.Image = this.currentFrame;
+           
+            // Check if we reached the end of the video
+            if (currentFrameIndex + 1 >= videoReader.FrameCount)
+            {
+                // Stop the timer and reset the current frame index
+                timer.Dispose();
+                currentFrameIndex = -1;
+                return;
+            }
+
+        }
+
+        private void label1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
+        {
+            minMotionLevel = (float)numericUpDown1.Value / 10000;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            minMotionLevel = (float)numericUpDown1.Value / 10000;
         }
     }
 }
