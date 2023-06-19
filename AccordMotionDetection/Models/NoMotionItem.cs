@@ -18,7 +18,11 @@ namespace AccordMotionDetection.Models
         }
         public override string ToString()
         {
-            return $"{StartTime} -->  {EndTime} \r\n";
+            return $"{StartTime.ToString(@"mm\:ss\:ffff")} -->  {EndTime.ToString(@"mm\:ss\:ffff")}  {EndTime.Subtract(StartTime).TotalSeconds}s\r\n";
         }
+
+        public bool IsValid(int minSeconds) =>
+            EndTime.Subtract(StartTime).TotalSeconds > minSeconds;
+        
     }
 }

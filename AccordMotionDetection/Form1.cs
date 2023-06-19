@@ -26,7 +26,7 @@ namespace AccordMotionDetection
         private Timer timer;
         private bool IsInMotion = false;
         private TimeSpan? noMotionStartTime = null;
-
+        private int minSecondsToIgnore = 0;
 
         private bool isDemoMode = false;
         private int currentFrameIndex = -1;
@@ -71,6 +71,7 @@ namespace AccordMotionDetection
                         var motionLevel = detector.ProcessFrame(frame);
                         if (motionLevel > minMotionLevel)
                         {
+                            //Motion has started or No-motion has stopped
                             if (!inMotion)
                             {
                                 if (!startTime.HasValue)
@@ -86,14 +87,14 @@ namespace AccordMotionDetection
                                 }
                                 var endTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
                                 var node = new NoMotionItem(startTime.Value, endTime);
-                                noMotionAreas.AddLast(node);
-                                textBox1.Text += node.ToString();
+                                AddNodeToLinkedList(node);
                                 startTime = null;
                                 inMotion = true;
                             }
                         }
                         else
                         {
+                            //No Motion
                             if (frameNumber == 1)
                             {
                                 startTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
@@ -110,8 +111,7 @@ namespace AccordMotionDetection
                                 {
                                     var endTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
                                     var node = new NoMotionItem(startTime.Value, endTime);
-                                    noMotionAreas.AddLast(node);
-                                    textBox1.Text += node.ToString();
+                                    AddNodeToLinkedList(node);
                                 }
                             }
                         }
@@ -150,6 +150,7 @@ namespace AccordMotionDetection
             currentFrame = videoReader.ReadVideoFrame();
             currentFrameIndex++;
 
+            lblFrame.Text = $"{currentFrameIndex}/{videoReader.FrameCount}";
 
             // Perform processing operations on the frame
             // ...
@@ -171,8 +172,7 @@ namespace AccordMotionDetection
                     }
                     var endTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
                     var node = new NoMotionItem(noMotionStartTime.Value, endTime);
-                    noMotionAreas.AddLast(node);
-                    textBox1.Text += node.ToString();
+                    AddNodeToLinkedList(node);
                     noMotionStartTime = null;
                     IsInMotion = true;
                 }
@@ -195,8 +195,7 @@ namespace AccordMotionDetection
                     {
                         var endTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
                         var node = new NoMotionItem(noMotionStartTime.Value, endTime);
-                        noMotionAreas.AddLast(node);
-                        textBox1.Text += node.ToString();
+                        AddNodeToLinkedList(node);
                     }
                 }
             }
@@ -221,14 +220,29 @@ namespace AccordMotionDetection
 
         }
 
-        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
+  
+        private void AddNodeToLinkedList(NoMotionItem node)
         {
-            minMotionLevel = (float)numericUpDown1.Value / 10000;
+            if (node.IsValid(minSecondsToIgnore))
+            {
+                noMotionAreas.AddLast(node);
+                textBox1.Text += node.ToString();
+            }
         }
-
         private void Form1_Load(object sender, EventArgs e)
         {
-            minMotionLevel = (float)numericUpDown1.Value / 10000;
+            minMotionLevel = float.Parse(txtSensitivity.Text);
+            minSecondsToIgnore = int.Parse(txtIgnoreInSecs.Text);
+        }
+
+        private void txtSensitivity_TextChanged(object sender, EventArgs e)
+        {
+            minMotionLevel = float.Parse(txtSensitivity.Text);
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            minSecondsToIgnore = int.Parse(txtIgnoreInSecs.Text);
         }
     }
 }
