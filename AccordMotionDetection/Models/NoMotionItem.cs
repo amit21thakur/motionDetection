@@ -21,7 +21,7 @@ namespace AccordMotionDetection.Models
             return $"{StartTime.ToString(@"mm\:ss\:ffff")} -->  {EndTime.ToString(@"mm\:ss\:ffff")}  {EndTime.Subtract(StartTime).TotalSeconds}s\r\n";
         }
 
-        public bool IsValid(int minSeconds) =>
+        public bool IsValid(double minSeconds) =>
             EndTime.Subtract(StartTime).TotalSeconds > minSeconds;
         
     }

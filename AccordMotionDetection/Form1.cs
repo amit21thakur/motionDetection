@@ -15,20 +15,17 @@ namespace AccordMotionDetection
 {
     public partial class Form1 : Form
     {
-        private FilterInfoCollection videoDevices;
-        private VideoCaptureDevice videoSource;
         private Bitmap currentFrame;
-        private Bitmap previousFrame;
-        private bool motionDetected;
         private LinkedList<NoMotionItem> noMotionAreas;
         private float minMotionLevel = 0.01f;
         private VideoFileReader videoReader;
         private Timer timer;
         private bool IsInMotion = false;
         private TimeSpan? noMotionStartTime = null;
-        private int minSecondsToIgnore = 0;
+        private double minSecondsToIgnore = 0;
+        private float speed = 1f;
 
-        private bool isDemoMode = false;
+        private bool isDemoMode = true;
         private int currentFrameIndex = -1;
 
 
@@ -39,7 +36,6 @@ namespace AccordMotionDetection
         public Form1()
         {
             InitializeComponent();
-            motionDetected = false;
             noMotionAreas = new LinkedList<NoMotionItem>();
         }
 
@@ -155,6 +151,7 @@ namespace AccordMotionDetection
             // Perform processing operations on the frame
             // ...
             var motionLevel = currentFrame != null ? detector.ProcessFrame(currentFrame): 0;
+            lblMotionSenstivity.Text = motionLevel.ToString();
             if (motionLevel > minMotionLevel)
             {
                 if (!IsInMotion)
@@ -232,7 +229,7 @@ namespace AccordMotionDetection
         private void Form1_Load(object sender, EventArgs e)
         {
             minMotionLevel = float.Parse(txtSensitivity.Text);
-            minSecondsToIgnore = int.Parse(txtIgnoreInSecs.Text);
+            minSecondsToIgnore = double.Parse(txtIgnoreInSecs.Text);
         }
 
         private void txtSensitivity_TextChanged(object sender, EventArgs e)
@@ -242,7 +239,33 @@ namespace AccordMotionDetection
 
         private void textBox2_TextChanged(object sender, EventArgs e)
         {
-            minSecondsToIgnore = int.Parse(txtIgnoreInSecs.Text);
+            minSecondsToIgnore = double.Parse(txtIgnoreInSecs.Text);
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+        private void cmbSpeed_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            speed = float.Parse(cmbSpeed.SelectedItem.ToString().TrimEnd('x'));
+            timer.Interval = (int)Math.Round(1000.0 / (videoReader.FrameRate.Value * speed));
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            textBox1.Text = string.Empty;
+            cmbSpeed.SelectedIndex = 0;
+        }
+
+        private void btnPause_Click(object sender, EventArgs e)
+        {
+            timer.Stop();
+        }
+
+        private void btnPlay_Click(object sender, EventArgs e)
+        {
+            timer.Start();
         }
     }
 }
