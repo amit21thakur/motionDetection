@@ -1,12 +1,7 @@
-﻿using Accord.Video.DirectShow;
-using Accord.Video.FFMPEG;
-using Accord.Video.VFW;
-using Accord.Imaging;
+﻿using Accord.Video.FFMPEG;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using Accord.Imaging.Filters;
-using Accord.Video;
 using System.Collections.Generic;
 using Accord.Vision.Motion;
 using AccordMotionDetection.Models;
@@ -15,7 +10,11 @@ namespace AccordMotionDetection
 {
     public partial class Form1 : Form
     {
-        private Bitmap currentFrame;
+
+        private MotionDetector detector = new MotionDetector(
+            new TwoFramesDifferenceDetector(),
+            new MotionAreaHighlighting());
+
         private LinkedList<NoMotionItem> noMotionAreas;
         private float minMotionLevel = 0.01f;
         private VideoFileReader videoReader;
@@ -24,14 +23,11 @@ namespace AccordMotionDetection
         private TimeSpan? noMotionStartTime = null;
         private double minSecondsToIgnore = 0;
         private float speed = 1f;
-
+        private Bitmap currentFrame;
+        private Bitmap previousFrame = null;
         private bool isDemoMode = true;
         private int currentFrameIndex = -1;
 
-
-        private MotionDetector detector = new MotionDetector(
-            new TwoFramesDifferenceDetector(),
-            new MotionAreaHighlighting());
 
         public Form1()
         {
@@ -42,7 +38,7 @@ namespace AccordMotionDetection
         private void btnUpload_Click(object sender, EventArgs e)
         {
             var openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Video Files|*.mp4;*.avi;*.wmv;*.mkv";
+            openFileDialog.Filter = "Video Files|*.mp4;*.mkv";
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 var dtStart = DateTime.Now;
@@ -142,15 +138,19 @@ namespace AccordMotionDetection
         // Method to show the next frame
         private void ShowNextFrame(object state, EventArgs args)
         {
+            if (previousFrame != null)
+                previousFrame.Dispose();
+
             // Read the next frame
             currentFrame = videoReader.ReadVideoFrame();
+            
             currentFrameIndex++;
 
             lblFrame.Text = $"{currentFrameIndex}/{videoReader.FrameCount}";
 
             // Perform processing operations on the frame
             // ...
-            var motionLevel = currentFrame != null ? detector.ProcessFrame(currentFrame): 0;
+            var motionLevel = currentFrame != null ? detector.ProcessFrame(currentFrame) : 0;
             lblMotionSenstivity.Text = motionLevel.ToString();
             if (motionLevel > minMotionLevel)
             {
@@ -199,8 +199,10 @@ namespace AccordMotionDetection
 
             // Update the PictureBox with the current frame
             lbl.Text = IsInMotion ? "MOTION" : "NO MOTION";
-            pictureBox1.Image = this.currentFrame;
-           
+            if (currentFrameIndex % speed == 0)
+                pictureBox1.Image = currentFrame;
+
+            previousFrame = currentFrame;
             // Check if we reached the end of the video
             if (currentFrameIndex + 1 >= videoReader.FrameCount)
             {
@@ -209,7 +211,6 @@ namespace AccordMotionDetection
                 currentFrameIndex = -1;
                 return;
             }
-
         }
 
         private void label1_Click(object sender, EventArgs e)
