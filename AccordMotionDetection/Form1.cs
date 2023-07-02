@@ -15,12 +15,12 @@ namespace AccordMotionDetection
             new TwoFramesDifferenceDetector(),
             new MotionAreaHighlighting());
 
-        private LinkedList<NoMotionItem> noMotionAreas;
+        private LinkedList<MotionItem> motionAreas;
         private float minMotionLevel = 0.01f;
         private VideoFileReader videoReader;
         private Timer timer;
         private bool IsInMotion = false;
-        private TimeSpan? noMotionStartTime = null;
+        private TimeSpan? motionStartTime = null;
         private double minSecondsToIgnore = 0;
         private float speed = 1f;
         private Bitmap currentFrame;
@@ -32,7 +32,7 @@ namespace AccordMotionDetection
         public Form1()
         {
             InitializeComponent();
-            noMotionAreas = new LinkedList<NoMotionItem>();
+            motionAreas = new LinkedList<MotionItem>();
         }
 
         private void btnUpload_Click(object sender, EventArgs e)
@@ -78,7 +78,7 @@ namespace AccordMotionDetection
                                     }
                                 }
                                 var endTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
-                                var node = new NoMotionItem(startTime.Value, endTime);
+                                var node = new MotionItem(startTime.Value, endTime);
                                 AddNodeToLinkedList(node);
                                 startTime = null;
                                 inMotion = true;
@@ -102,7 +102,7 @@ namespace AccordMotionDetection
                                 if (!inMotion && startTime.HasValue)
                                 {
                                     var endTime = TimeSpan.FromSeconds(frameNumber / videoReader.FrameRate.Value);
-                                    var node = new NoMotionItem(startTime.Value, endTime);
+                                    var node = new MotionItem(startTime.Value, endTime);
                                     AddNodeToLinkedList(node);
                                 }
                             }
@@ -153,47 +153,43 @@ namespace AccordMotionDetection
             var motionLevel = currentFrame != null ? detector.ProcessFrame(currentFrame) : 0;
             lblMotionSenstivity.Text = motionLevel.ToString();
             if (motionLevel > minMotionLevel)
-            {
+            { //There is a motion
                 if (!IsInMotion)
-                {
-                    if (!noMotionStartTime.HasValue)
-                    {
-                        if (currentFrameIndex < 10)
-                        {
-                            noMotionStartTime = new TimeSpan(0);
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException("Start Time could not be null");
-                        }
-                    }
-                    var endTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
-                    var node = new NoMotionItem(noMotionStartTime.Value, endTime);
-                    AddNodeToLinkedList(node);
-                    noMotionStartTime = null;
+                { //i.e. now is the begining of motion 
                     IsInMotion = true;
+                    motionStartTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
+                    //if (!motionStartTime.HasValue)
+                    //{
+                    //    if (currentFrameIndex < 10)
+                    //    {
+                    //        motionStartTime = new TimeSpan(0);
+                    //    }
+                    //    else
+                    //    {
+                    //        throw new InvalidOperationException("Start Time could not be null");
+                    //    }
+                    //}
+                }
+                if (currentFrameIndex == videoReader.FrameCount - 1)
+                {
+                    if (IsInMotion && motionStartTime.HasValue)
+                    {
+                        var endTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
+                        var node = new MotionItem(motionStartTime.Value, endTime);
+                        AddNodeToLinkedList(node);
+                    }
                 }
             }
             else
             {
-                if (currentFrameIndex == 1)
-                {
-                    noMotionStartTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
-                }
+                //There is no motion in this frame
                 if (IsInMotion)
-                {
-                    //Add no motion item in LL
-                    noMotionStartTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
+                {   //This is place where motion finishes
                     IsInMotion = false;
-                }
-                if (currentFrameIndex == videoReader.FrameCount - 1)
-                {
-                    if (!IsInMotion && noMotionStartTime.HasValue)
-                    {
-                        var endTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
-                        var node = new NoMotionItem(noMotionStartTime.Value, endTime);
-                        AddNodeToLinkedList(node);
-                    }
+                    //Add motion item to LL
+                    var endTime = TimeSpan.FromSeconds(currentFrameIndex / videoReader.FrameRate.Value);
+                    var node = new MotionItem(motionStartTime.Value, endTime);
+                    AddNodeToLinkedList(node);
                 }
             }
 
@@ -219,11 +215,11 @@ namespace AccordMotionDetection
         }
 
   
-        private void AddNodeToLinkedList(NoMotionItem node)
+        private void AddNodeToLinkedList(MotionItem node)
         {
             if (node.IsValid(minSecondsToIgnore))
             {
-                noMotionAreas.AddLast(node);
+                motionAreas.AddLast(node);
                 textBox1.Text += node.ToString();
             }
         }

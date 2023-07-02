@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace AccordMotionDetection.Models
 {
-    public class NoMotionItem
+    public class MotionItem
     {
         public TimeSpan StartTime { get; private set; }
         public TimeSpan EndTime { get; set; }
 
-        public NoMotionItem(TimeSpan startTime, TimeSpan endTime)
+        public MotionItem(TimeSpan startTime, TimeSpan endTime)
         {
             StartTime = startTime;
             EndTime = endTime;
